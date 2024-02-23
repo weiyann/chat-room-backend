@@ -4,6 +4,7 @@ import cors from "cors";
 import upload from "./utils/upload-imgs.js"; // 上傳圖片
 import db from "./utils/connect-mysql.js"; // 資料庫
 import testRouter from "./routes/index.js"; // 引入路由
+import bcrypt from "bcryptjs";
 
 //建立web server物件
 const app = express();
@@ -16,6 +17,24 @@ app.use(express.json());
 // 定義路由
 app.get("/", (req, res) => {
   res.send("<h2>abc</h2>");
+});
+
+app.post("/api/regist", async (req, res) => {
+  const output = {
+    success: false,
+    postData: req.body, // 除錯用
+  };
+  const { user_name, account, password } = req.body;
+  const hash = await bcrypt.hash(password, 8);
+  const sql = `INSERT INTO user( user_name, account, password) VALUES (?,?,?)`;
+  try {
+    const [result] = await db.query(sql, [user_name, account, hash]);
+    output.result = result;
+    output.success = !!result.affectedRows;
+  } catch (ex) {
+    output.exception = ex;
+  }
+  res.json(output);
 });
 
 app.use("/test", testRouter); // 當成 middleware 使用
