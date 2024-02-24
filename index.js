@@ -4,7 +4,9 @@ import cors from "cors";
 import upload from "./utils/upload-imgs.js"; // 上傳圖片
 import db from "./utils/connect-mysql.js"; // 資料庫
 import testRouter from "./routes/index.js"; // 引入路由
+import roomRouter from "./routes/room.js";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 //建立web server物件
 const app = express();
@@ -19,12 +21,13 @@ app.get("/", (req, res) => {
   res.send("<h2>abc</h2>");
 });
 
+// 註冊api
 app.post("/api/regist", async (req, res) => {
   const output = {
     success: false,
     postData: req.body, // 除錯用
   };
-  const { user_name, account, password } = req.body;
+  const { user_name, account, password } = req.body.formData;
   const hash = await bcrypt.hash(password, 8);
   const sql = `INSERT INTO user( user_name, account, password) VALUES (?,?,?)`;
   try {
@@ -37,7 +40,44 @@ app.post("/api/regist", async (req, res) => {
   res.json(output);
 });
 
+// 登入api
+app.post("/api/login", async (req, res) => {
+  const output = {
+    success: false,
+    code: 0,
+    postData: req.body,
+    token: "",
+  };
+  const { account, password } = req.body;
+  if (!account || !password) {
+    // 資料不足
+    output.code = 410;
+    return res.json(output);
+  }
+  const sql = "SELECT * FROM user WHERE account=?";
+  const [rows] = await db.query(sql, [account]);
+  if (!rows.length) {
+    // 帳號是錯的
+    output.code = 400;
+    return res.json(output);
+  }
+  const row = rows[0];
+  const pass = await bcrypt.compare(password, row.password);
+  if (!pass) {
+    // 密碼是錯的
+    output.code = 420;
+    return res.json(output);
+  }
+  output.code = 200;
+  output.success = true;
+  output.user_name = row.user_name;
+  output.token = jwt.sign({ user_name: row.user_name }, process.env.JWT_SECRET);
+
+  res.json(output);
+});
+
 app.use("/test", testRouter); // 當成 middleware 使用
+app.use("/room", roomRouter);
 
 // 上傳圖片的路由
 // 加入 middleware upload.single()
