@@ -71,6 +71,7 @@ app.post("/api/login", async (req, res) => {
   output.code = 200;
   output.success = true;
   output.user_name = row.user_name;
+  output.user_id = row.user_id;
   output.token = jwt.sign({ user_name: row.user_name }, process.env.JWT_SECRET);
 
   res.json(output);

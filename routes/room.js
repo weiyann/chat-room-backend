@@ -3,6 +3,7 @@ import db from "../utils/connect-mysql.js"; // 資料庫
 
 const router = express.Router();
 
+// 取得房間資料的函式
 const getRoomList = async (req) => {
   let rows = [];
   let output = {
@@ -24,6 +25,35 @@ const getRoomList = async (req) => {
 
 router.get("/", async (req, res) => {
   const output = await getRoomList(req);
+  res.json(output);
+});
+
+// 創建房間
+router.post("/create-room", async (req, res) => {
+  const output = {
+    success: false,
+    body: req.body,
+  };
+  const { room_name, room_password, user_id, category_id } =
+    req.body.createRoomForm;
+
+  const sql =
+    "INSERT INTO `room`( `room_name`, `room_password`, `user_id`, `category_id`) VALUES (?,?,?,?)";
+  try {
+    const [result] = await db.query(sql, [
+      room_name,
+      room_password,
+      user_id,
+      category_id,
+    ]);
+    const room_id = result.insertId;
+
+    output.room_id = room_id;
+    output.result = result;
+    output.success = !!result.affectedRows;
+  } catch (ex) {
+    output.exception = ex;
+  }
   res.json(output);
 });
 
