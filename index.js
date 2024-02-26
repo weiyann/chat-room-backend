@@ -27,11 +27,11 @@ app.post("/api/regist", async (req, res) => {
     success: false,
     postData: req.body, // 除錯用
   };
-  const { user_name, account, password } = req.body.formData;
+  const { user_name, account, password, user_img } = req.body.formData;
   const hash = await bcrypt.hash(password, 8);
-  const sql = `INSERT INTO user( user_name, account, password) VALUES (?,?,?)`;
+  const sql = `INSERT INTO user( user_name, account, password,user_img) VALUES (?,?,?,?)`;
   try {
-    const [result] = await db.query(sql, [user_name, account, hash]);
+    const [result] = await db.query(sql, [user_name, account, hash, user_img]);
     output.result = result;
     output.success = !!result.affectedRows;
   } catch (ex) {
@@ -74,6 +74,19 @@ app.post("/api/login", async (req, res) => {
   output.user_id = row.user_id;
   output.token = jwt.sign({ user_name: row.user_name }, process.env.JWT_SECRET);
 
+  res.json(output);
+});
+
+// 切換圖片
+app.put("/change-img", async (req, res) => {
+  const user_id = +req.query.user_id;
+  const user_img = req.query.user_img;
+  const output = {
+    success: false,
+  };
+  const sql = "UPDATE `user` SET `user_img`=? WHERE user_id = ?";
+  const [result] = await db.query(sql, [user_img, user_id]);
+  output.success = !!result.changedRows;
   res.json(output);
 });
 
