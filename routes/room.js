@@ -1,7 +1,16 @@
 import express from "express";
 import db from "../utils/connect-mysql.js"; // 資料庫
+// import { Server } from "socket.io";
+// import { createServer } from "http";
 
 const router = express.Router();
+// const httpServer = createServer();
+
+// // 建立 WebSocket 服務
+// const io = new Server(httpServer);
+
+// // 將房間與其對應的 WebSocket 連接儲存在物件中
+// const roomSockets = {};
 
 // 取得房間資料的函式
 const getRoomList = async (req) => {
@@ -31,8 +40,31 @@ router.get("/", async (req, res) => {
 
 // 取得單一房間資料
 router.get("/chatroom/:rid", async (req, res) => {
+  const rid = req.params.rid;
+
+  // // 確保房間尚未建立 WebSocket 連接
+  // if (!roomSockets[rid]) {
+  //   // 建立新的 WebSocket 連接
+  //   roomSockets[rid] = io
+  //     .of(`/room/chatroom/${rid}`)
+  //     .on("connection", (socket) => {
+  //       console.log(`User connected to room ${rid}`);
+
+  //       // 當收到新的聊天訊息時
+  //       socket.on("chat_message", (message) => {
+  //         // 將訊息廣播到該聊天室的所有用戶
+  //         roomSockets[rid].emit("chat_message", message);
+  //       });
+
+  //       // 當用戶斷開連接時處理
+  //       socket.on("disconnect", () => {
+  //         console.log(`User disconnected from room ${rid}`);
+  //       });
+  //     });
+  // }
   const sql = `SELECT 
   u.user_name,
+  u.user_img,
   rm.level,
   r.room_name,
   c.category_name 
@@ -40,8 +72,8 @@ router.get("/chatroom/:rid", async (req, res) => {
   JOIN user u ON rm.user_id = u.user_id
   JOIN room r ON rm.room_id = r.room_id
   JOIN category c ON r.category_id = c.category_id
-  WHERE rm.room_id = 20`;
-  const [rows] = await db.query(sql);
+  WHERE rm.room_id = ?`;
+  const [rows] = await db.query(sql, [rid]);
   res.json(rows);
 });
 

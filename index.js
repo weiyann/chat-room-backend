@@ -7,6 +7,8 @@ import testRouter from "./routes/index.js"; // 引入路由
 import roomRouter from "./routes/room.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Server } from "socket.io";
+import { createServer } from "http";
 
 //建立web server物件
 const app = express();
@@ -15,6 +17,43 @@ const app = express();
 app.use(cors()); // 放所有路由的前面
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
+
+const server = createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: ["http://localhost:3000"],
+  },
+});
+const chatRooms = {};
+
+//socket.io;
+io.on("connection", (socket) => {
+  console.log(`user connected: ${socket.id}`);
+
+  socket.on("join_room", (room_id) => {
+    socket.join(room_id);
+    if (!chatRooms[room_id]) {
+      chatRooms[room_id] = [];
+    }
+
+    // socket.emit("room_history", chatRooms[room_id]);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
+
+  socket.on("chat_message", (data) => {
+    const { room_id, message, senderId, userName, userImage } = data;
+    chatRooms[room_id].push({ message, senderId, userName, userImage });
+    io.to(room_id).emit("chat_message", {
+      message,
+      senderId,
+      userName,
+      userImage,
+    }); // 將消息廣播到房間中
+  });
+});
 
 // 定義路由
 app.get("/", (req, res) => {
@@ -108,6 +147,6 @@ app.use(express.static("public"));
 
 const port = process.env.WEB_PORT || 3001; // 如果沒設定就使用3001
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`express server ${port}`);
 });
