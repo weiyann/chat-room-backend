@@ -19,13 +19,20 @@ const getRoomList = async (req) => {
     success: false,
   };
   const sql = `SELECT 
-  r.* ,
-  u.user_name,
-  c.category_name,
-  c.image FROM room r
-  JOIN user u ON r.user_id = u.user_id
-  LEFT JOIN category c ON r.category_id = c.category_id
-  ORDER BY r.room_id desc`;
+    r.*,
+    u.user_name,
+    c.category_name,
+    c.image,
+    COUNT(rm.room_id) AS member_count
+  FROM 
+    room r
+    JOIN user u ON r.user_id = u.user_id
+    JOIN room_member rm ON r.room_id = rm.room_id
+    LEFT JOIN category c ON r.category_id = c.category_id
+  GROUP BY 
+    r.room_id
+  ORDER BY 
+    r.room_id DESC;`;
 
   [rows] = await db.query(sql);
   output = { ...output, success: true, rows };
@@ -42,26 +49,6 @@ router.get("/", async (req, res) => {
 router.get("/chatroom/:rid", async (req, res) => {
   const rid = req.params.rid;
 
-  // // 確保房間尚未建立 WebSocket 連接
-  // if (!roomSockets[rid]) {
-  //   // 建立新的 WebSocket 連接
-  //   roomSockets[rid] = io
-  //     .of(`/room/chatroom/${rid}`)
-  //     .on("connection", (socket) => {
-  //       console.log(`User connected to room ${rid}`);
-
-  //       // 當收到新的聊天訊息時
-  //       socket.on("chat_message", (message) => {
-  //         // 將訊息廣播到該聊天室的所有用戶
-  //         roomSockets[rid].emit("chat_message", message);
-  //       });
-
-  //       // 當用戶斷開連接時處理
-  //       socket.on("disconnect", () => {
-  //         console.log(`User disconnected from room ${rid}`);
-  //       });
-  //     });
-  // }
   const sql = `SELECT 
   u.user_name,
   u.user_img,
@@ -111,6 +98,29 @@ router.post("/create-room", async (req, res) => {
     output.exception = ex;
   }
 
+  res.json(output);
+});
+
+// 進入房間
+router.post("/enter-room", async (req, res) => {
+  const output = {
+    success: false,
+    body: req.body,
+  };
+
+  const { room_id, user_id } = req.body;
+  console.log(req.body);
+  const level = "member";
+
+  const sql =
+    "INSERT INTO `room_member`( `room_id`, `user_id`, `level`) VALUES (?,?,?)";
+  try {
+    const [result] = await db.query(sql, [room_id, user_id, level]);
+    output.result = result;
+    output.success = !!result.affectedRows;
+  } catch (ex) {
+    output.exception = ex;
+  }
   res.json(output);
 });
 

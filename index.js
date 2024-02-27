@@ -24,23 +24,31 @@ const io = new Server(server, {
     origin: ["http://localhost:3000"],
   },
 });
-const chatRooms = {};
 
+const chatRooms = {};
 //socket.io;
 io.on("connection", (socket) => {
   console.log(`user connected: ${socket.id}`);
 
-  socket.on("join_room", (room_id) => {
+  socket.on("join_room", (room_id, userName) => {
     socket.join(room_id);
     if (!chatRooms[room_id]) {
       chatRooms[room_id] = [];
     }
 
-    // socket.emit("room_history", chatRooms[room_id]);
+    // 向当前房间内的其他用户广播用户加入的消息
+    socket.to(room_id).emit("user_joined", userName);
+  });
+
+  socket.on("leave_room", (room_id, userName) => {
+    socket.leave(room_id);
+    io.to(room_id).emit("user_left", userName);
+
+    console.log("123");
   });
 
   socket.on("disconnect", () => {
-    console.log("User disconnected");
+    console.log(`User disconnected: ${socket.id}`);
   });
 
   socket.on("chat_message", (data) => {
