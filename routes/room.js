@@ -124,4 +124,19 @@ router.post("/enter-room", async (req, res) => {
   res.json(output);
 });
 
+// 離開房間
+router.delete("/leave-room", async (req, res) => {
+  const uid = +req.query.uid;
+  console.log(uid);
+  const output = {
+    success: false,
+  };
+  const sql = "DELETE FROM `room_member` WHERE user_id = ?";
+  const [result] = await db.query(sql, [uid]);
+  output.result = result;
+  output.success = !!result.affectedRows;
+
+  res.json(output);
+});
+
 export default router;

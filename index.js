@@ -30,21 +30,28 @@ const chatRooms = {};
 io.on("connection", (socket) => {
   console.log(`user connected: ${socket.id}`);
 
-  socket.on("join_room", (room_id, userName) => {
+  socket.on("join_room", (room_id, userName, userImage, userId) => {
     socket.join(room_id);
     if (!chatRooms[room_id]) {
       chatRooms[room_id] = [];
     }
 
-    // 向当前房间内的其他用户广播用户加入的消息
+    // 向當前房間內的用戶廣播轟加入房間
     socket.to(room_id).emit("user_joined", userName);
+
+    io.to(room_id).emit("user_members", {
+      userName: userName,
+      userImage: userImage,
+      userId: userId,
+    });
   });
 
-  socket.on("leave_room", (room_id, userName) => {
+  socket.on("leave_room", (room_id, userName, userId) => {
     socket.leave(room_id);
-    io.to(room_id).emit("user_left", userName);
+    socket.to(room_id).emit("user_left", userName);
 
-    console.log("123");
+    // 離開房間後發送斷連事件
+    io.to(room_id).emit("user_disconnected", userId);
   });
 
   socket.on("disconnect", () => {
