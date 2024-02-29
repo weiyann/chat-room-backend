@@ -21,7 +21,7 @@ app.use(express.json());
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000"],
+    origin: ["http://localhost:3000", "https://your-vercel-app.vercel.app"],
   },
 });
 
@@ -35,8 +35,15 @@ io.on("connection", (socket) => {
     if (!chatRooms[room_id]) {
       chatRooms[room_id] = [];
     }
+    // // 将用户信息添加到 chatRooms 中
+    // chatRooms[room_id].push({
+    //   userId: userId,
+    //   userName: userName,
+    //   userImage: userImage,
+    // });
 
-    // 向當前房間內的用戶廣播轟加入房間
+    // console.log(chatRooms);
+    // 向當前房間內的用戶廣播用戶加入房間
     socket.to(room_id).emit("user_joined", userName);
 
     io.to(room_id).emit("user_members", {
